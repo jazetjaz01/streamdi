@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "./ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
@@ -6,29 +7,48 @@ import { LogoutButton } from "./logout-button";
 export async function AuthButton() {
   const supabase = await createClient();
 
-  // You can also use getUser() which will be slower.
-  const { data } = await supabase.auth.getClaims();
+  // 🔹 Récupère l'utilisateur connecté
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const user = data?.claims;
+  if (!user) {
+    // 🔹 Aucun utilisateur connecté → afficher Connexion / Inscription
+    return (
+      <div className="flex gap-2">
+        <Button variant="outline" className="hidden sm:inline-flex rounded-full">
+          <Link href="/auth/login">Connexion</Link>
+        </Button>
+        <Button className="rounded-full">
+          <Link href="/auth/sign-up">S'enregistrer</Link>
+        </Button>
+      </div>
+    );
+  }
 
-  return user ? (
+  // 🔹 Récupère le profil de l'utilisateur connecté
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("user_id", user.id)
+    .single();
+
+  const avatarUrl =
+    profile?.avatar_url ||
+    "https://ui-avatars.com/api/?name=User&background=random&bold=true";
+
+  return (
     <div className="flex items-center gap-4">
-      Hey, {user.email}!
+      <Link href="/profile">
+        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700">
+          <Image
+            src={avatarUrl}
+            alt="Avatar"
+            fill
+            className="object-cover"
+          />
+        </div>
+      </Link>
       <LogoutButton />
-    </div>
-  ) : (
-    <div className="flex gap-2">
-      <Button
-            variant="outline"
-            className="hidden sm:inline-flex rounded-full"
-          >
-             <Link href="/auth/login">Connexion</Link>
-          </Button>
-      <Button className="rounded-full">
-        <Link href="/auth/sign-up">S'enregistrer</Link>
-      </Button>
     </div>
   );
 }
-
 
