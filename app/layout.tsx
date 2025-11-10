@@ -1,6 +1,12 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/navbar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Separator } from "@/components/ui/separator";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,10 +30,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+           <Navbar />
+        <SidebarProvider defaultOpen={true}>
+
+        
+       
+
+          {/* Layout horizontal avec sidebar et contenu */}
+          <div className="flex min-h-screen pt-16 w-full"> {/* pt-24 pour laisser l'espace de la navbar si fixe */}
+            {/* Sidebar */}
+            <AppSidebar />
+
+            {/* Contenu principal avec trigger */}
+            <SidebarInset className="flex-1 flex flex-col overflow-auto">
+              <header className="flex h-16 items-center gap-2 px-4 bg-white dark:bg-black shrink-0">
+                <SidebarTrigger className="-ml-1" />
+                <Separator orientation="vertical" className="mr-2 h-8" />
+                
+              </header>
+
+              {/* Main content ici */}
+              <main className="flex-1 p-4 ">{children}</main>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
       </body>
     </html>
   );
