@@ -1,18 +1,15 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useActiveChannel } from "@/context/ActiveChannelContext";
 
 export default function UploadVideoPage() {
   const supabase = createClient();
-
-  // ----------------------------- STATES -----------------------------
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [channel, setChannel] = useState<any>(null);
+  const { activeChannel } = useActiveChannel(); // ✅ Chaîne active depuis le context
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -22,61 +19,8 @@ export default function UploadVideoPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const MAX_VIDEO_SIZE_MB = 100;
-
-  // ----------------------------- FETCH USER + PROFILE + CHANNEL -----------------------------
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 1️⃣ Récupérer l'utilisateur connecté
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-          setErrorMsg("Aucun utilisateur connecté.");
-          setLoading(false);
-          return;
-        }
-        setUser(user);
-
-        // 2️⃣ Récupérer le profil associé
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, display_name, username")
-          .eq("user_id", user.id)
-          .single();
-
-        if (profileError || !profileData) {
-          setErrorMsg("Profil introuvable pour cet utilisateur.");
-          setLoading(false);
-          return;
-        }
-        setProfile(profileData);
-
-        // 3️⃣ Récupérer la chaîne liée à ce profil
-        const { data: channelData, error: channelError } = await supabase
-          .from("channels")
-          .select("id, name, handle")
-          .eq("profile_id", profileData.id)
-          .single();
-
-        if (channelError || !channelData) {
-          setErrorMsg("Aucune chaîne associée à ce profil. Créez-en une d’abord.");
-          setLoading(false);
-          return;
-        }
-
-        setChannel(channelData);
-      } catch (err) {
-        console.error(err);
-        setErrorMsg("Erreur lors du chargement des données utilisateur.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [supabase]);
 
   // ----------------------------- HANDLE VIDEO -----------------------------
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +43,7 @@ export default function UploadVideoPage() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (!channel) return setErrorMsg("Aucune chaîne trouvée. Créez une chaîne avant d’uploader.");
+    if (!activeChannel) return setErrorMsg("Aucune chaîne active. Sélectionnez une chaîne avant d’uploader.");
     if (!title.trim()) return setErrorMsg("Le titre est obligatoire.");
     if (!videoFile) return setErrorMsg("Veuillez sélectionner une vidéo.");
 
@@ -123,7 +67,7 @@ export default function UploadVideoPage() {
 
       // Insert dans la table videos
       const { error: insertError } = await supabase.from("videos").insert({
-        channel_id: channel.id,
+        channel_id: activeChannel.id,
         title,
         description,
         video_url: videoPublicData.publicUrl,
@@ -148,18 +92,16 @@ export default function UploadVideoPage() {
     }
   };
 
-  if (loading) return <p>Chargement des informations...</p>;
-
   return (
     <div className="w-full mx-auto p-8 mt-5 border rounded-lg bg-white dark:bg-zinc-900 max-w-3xl">
       <h1 className="text-2xl font-bold mb-4">Uploader une vidéo</h1>
 
-      {channel ? (
+      {activeChannel ? (
         <p className="text-sm text-gray-500 mb-4">
-          🎬 Chaîne active : <strong>{channel.name}</strong> (@{channel.handle})
+          🎬 Chaîne active : <strong>{activeChannel.name}</strong> (@{activeChannel.handle})
         </p>
       ) : (
-        <p className="text-red-500 mb-4">Aucune chaîne trouvée pour ce profil.</p>
+        <p className="text-red-500 mb-4">Aucune chaîne active. Sélectionnez une chaîne dans le menu déroulant.</p>
       )}
 
       {errorMsg && <p className="text-red-500 mb-2">{errorMsg}</p>}
@@ -214,7 +156,7 @@ export default function UploadVideoPage() {
           <Input type="file" accept="image/*" onChange={e => setThumbnailFile(e.target.files?.[0] || null)} />
         </div>
 
-        <Button type="submit" disabled={submitting || !channel}>
+        <Button type="submit" disabled={submitting || !activeChannel}>
           {submitting ? "Upload en cours..." : "Uploader la vidéo"}
         </Button>
       </form>
