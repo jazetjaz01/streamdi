@@ -28,7 +28,7 @@ export function NavIntro() {
   const links: { name: string; url: string; icon: LucideIcon }[] = [
     { name: "Accueil", url: "/", icon: Home },
     { name: "Shorts", url: "/shorts", icon: PlaySquare },
-    { name: "Abonnements", url: "/studio/channels/new", icon: Play },
+    { name: "Abonnements", url: "/account/new-channel", icon: Play },
     { name: "Mon profil", url: "/account/profile", icon: CircleUser },
   ];
 

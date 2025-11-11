@@ -6,7 +6,8 @@ import Navbar from "@/components/navbar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
-
+import { ActiveChannelProvider } from "@/context/ActiveChannelContext";
+import { AuthProvider } from "@/context/AuthContext";
 const outfitSans = Outfit({
   variable: "--font-outfit-sans",
   display: "swap",
@@ -26,6 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${outfitSans.className} antialiased`}>
+        
+        <AuthProvider>
+        <ActiveChannelProvider>
         <Navbar />
         <SidebarProvider defaultOpen={false}>
           {/* Layout horizontal avec sidebar et contenu */}
@@ -45,6 +49,8 @@ export default function RootLayout({
             </SidebarInset>
           </div>
         </SidebarProvider>
+        </ActiveChannelProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -54,21 +54,45 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
+      title: "Studio",
       url: "#",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "History",
+          title: "Tableau de bord",
           url: "#",
         },
         {
-          title: "Starred",
+          title: "Contenus",
           url: "#",
         },
         {
-          title: "Settings",
+          title: "Données analytiques",
+          url: "#",
+        },
+        {
+          title: "Commentaires",
+          url: "#",
+        },
+        {
+          title: "Sous-titres",
+          url: "#",
+        },
+        {
+          title: "Détection de contenus",
+          url: "#",
+        },
+        {
+          title: "Revenus",
+          url: "#",
+        },
+        {
+          title: "Personnaliation",
+          url: "#",
+        },
+        {
+          title: "bibliothèque audio",
           url: "#",
         },
       ],
