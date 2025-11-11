@@ -49,12 +49,8 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
           avatar_url: "/default-avatar.png",
         }),
       });
-    // 1️⃣ rafraîchit les composants server-side (ex: AuthButton)
-router.refresh();
-
-// 2️⃣ redirige vers l’accueil
-router.replace("/profile");
-
+      
+      router.replace("/");
       
     } catch (err: unknown) {
       console.error(err);
@@ -62,7 +58,7 @@ router.replace("/profile");
     } finally {
       setIsLoading(false);
     }
-   
+    router.refresh();
   };
 
   const handleGoogleLogin = async () => {

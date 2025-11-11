@@ -38,7 +38,7 @@ export async function AuthButton() {
 
   return (
     <div className="flex items-center gap-4">
-      <Link href="/profile">
+      <Link href="/account/profile">
         <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-300 dark:border-gray-700">
           <Image
             src={avatarUrl}
