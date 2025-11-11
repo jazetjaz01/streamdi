@@ -49,15 +49,20 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
           avatar_url: "/default-avatar.png",
         }),
       });
+    // 1️⃣ rafraîchit les composants server-side (ex: AuthButton)
+router.refresh();
 
-      router.replace("/");
-      router.refresh();
+// 2️⃣ redirige vers l’accueil
+router.replace("/profile");
+
+      
     } catch (err: unknown) {
       console.error(err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
+   
   };
 
   const handleGoogleLogin = async () => {
@@ -65,7 +70,9 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
+      
     });
+    
     if (error) setError(error.message);
     else if (data.url) window.location.href = data.url;
   };

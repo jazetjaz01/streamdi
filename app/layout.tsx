@@ -28,7 +28,7 @@ export default function RootLayout({
     <html lang="en">
      <body className={`${outfitSans.className} antialiased`}>
            <Navbar />
-        <SidebarProvider defaultOpen={true}>
+        <SidebarProvider defaultOpen={false}>
 
         
        

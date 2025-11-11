@@ -25,7 +25,7 @@ export function SignUpForm() {
   const router = useRouter();
   const supabase = createClient();
 
-  // Récupération de la localisation IP
+  // 🔹 Récupération de la localisation IP
   const getLocation = async (): Promise<Location> => {
     try {
       const res = await fetch("https://ipapi.co/json/");
@@ -35,7 +35,7 @@ export function SignUpForm() {
     }
   };
 
-  // Appel API pour créer profil + chaîne
+  // 🔹 Création du profil utilisateur
   const createProfile = async (access_token: string, display_name: string, usernameParam: string) => {
     const location = await getLocation();
     await fetch("/api/create-profile", {
@@ -69,18 +69,28 @@ export function SignUpForm() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { full_name: username } },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: { full_name: username },
+        },
       });
 
       if (signUpError) throw signUpError;
 
       if (data.session?.access_token) {
-  await createProfile(data.session.access_token, username, username.toLowerCase().replace(/\s+/g, ""));
-  router.refresh(); // 👈 force la mise à jour côté serveur
-}
+        await createProfile(
+          data.session.access_token,
+          username,
+          username.toLowerCase().replace(/\s+/g, "")
+        );
 
+        // 🔄 Force le rafraîchissement des données serveur (ex: AuthButton)
+        router.refresh();
+      }
 
+      // 🚀 Redirection vers la page de succès
       router.push("/auth/sign-up-success");
+         router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
@@ -106,25 +116,57 @@ export function SignUpForm() {
       <form onSubmit={handleSignUp} className="flex flex-col gap-4">
         <div className="grid gap-2">
           <Label htmlFor="username">Nom et prénom</Label>
-          <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          <Input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="password">Mot de passe</Label>
-          <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="repeat-password">Répéter le mot de passe</Label>
-          <Input id="repeat-password" type="password" value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} required />
+          <Input
+            id="repeat-password"
+            type="password"
+            value={repeatPassword}
+            onChange={(e) => setRepeatPassword(e.target.value)}
+            required
+          />
         </div>
+
         {error && <p className="text-red-500">{error}</p>}
-        <Button type="submit" disabled={isLoading}>{isLoading ? "Création..." : "S’inscrire"}</Button>
+
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Création..." : "S’inscrire"}
+        </Button>
       </form>
 
-      <Button variant="outline" onClick={handleGoogleSignIn} className="flex items-center gap-2 mt-4">
+      <Button
+        variant="outline"
+        onClick={handleGoogleSignIn}
+        className="flex items-center gap-2 mt-4"
+      >
         <FcGoogle size={20} />
         S’inscrire avec Google
       </Button>
