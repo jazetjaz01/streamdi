@@ -75,8 +75,10 @@ export function SignUpForm() {
       if (signUpError) throw signUpError;
 
       if (data.session?.access_token) {
-        await createProfile(data.session.access_token, username, username.toLowerCase().replace(/\s+/g, ""));
-      }
+  await createProfile(data.session.access_token, username, username.toLowerCase().replace(/\s+/g, ""));
+  router.refresh(); // 👈 force la mise à jour côté serveur
+}
+
 
       router.push("/auth/sign-up-success");
     } catch (err: unknown) {

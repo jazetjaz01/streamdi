@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     console.log("Utilisateur connecté:", user_id);
 
     // Récupération de l'avatar Google si disponible
-    const avatarUrl = user.user_metadata?.avatar_url || "https://ui-avatars.com/api/?bold=true";
+    const avatarUrl = user.user_metadata?.avatar_url || "/default-avatar.png";
 
     // 2️⃣ Vérification si le profil existe déjà
     const { data: existingProfile, error: existingProfileError } = await supabase

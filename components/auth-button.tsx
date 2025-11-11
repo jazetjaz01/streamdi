@@ -8,7 +8,9 @@ export async function AuthButton() {
   const supabase = await createClient();
 
   // 🔹 Récupère l'utilisateur connecté
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     // 🔹 Aucun utilisateur connecté → afficher Connexion / Inscription
@@ -31,9 +33,8 @@ export async function AuthButton() {
     .eq("user_id", user.id)
     .single();
 
-  const avatarUrl =
-    profile?.avatar_url ||
-    "https://ui-avatars.com/api/?name=User&background=random&bold=true";
+  // ✅ Utilisation de l'image locale par défaut
+  const avatarUrl = profile?.avatar_url || "/default-avatar.png";
 
   return (
     <div className="flex items-center gap-4">
@@ -44,6 +45,7 @@ export async function AuthButton() {
             alt="Avatar"
             fill
             className="object-cover"
+            sizes="40px"
           />
         </div>
       </Link>
@@ -51,4 +53,3 @@ export async function AuthButton() {
     </div>
   );
 }
-
