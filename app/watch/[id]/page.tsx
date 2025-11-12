@@ -26,11 +26,11 @@ export default function WatchPage() {
   const params = useParams();
   const videoId = params?.id;
   const supabase = createClient();
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
-  const [views, setViews] = useState<number | null>(null);
+  const [views, setViews] = useState<number>(0);
+  const hasIncrementedRef = useRef(false); // pour n’incrémenter qu’une seule fois
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -58,62 +58,34 @@ export default function WatchPage() {
     fetchVideo();
   }, [videoId, supabase]);
 
-  // --- Ajouter une vue lors du premier play ---
-  useEffect(() => {
-    const videoEl = videoRef.current;
-    if (!videoEl || !video) return;
+  // --- Fonction pour incrémenter les vues via API ---
+  const incrementViews = async () => {
+    if (!videoId || hasIncrementedRef.current) return;
 
-    const handlePlay = async () => {
-      try {
-        // Increment côté serveur
-        const { error } = await supabase
-          .from("videos")
-          .update({ views_count: (video.views_count || 0) + 1 })
-          .eq("id", video.id);
-
-        if (error) throw error;
-
-        // Update côté client (arrondi ensuite)
-        setViews((prev) => (prev ? prev + 1 : 1));
-      } catch (err: any) {
-        console.error("Erreur incrémentation vues:", err.message || err);
+    try {
+      const res = await fetch(`/api/videos/increment-view/${videoId}`, { method: "POST" });
+      const result = await res.json();
+      if (res.ok) {
+        setViews(result.views); // met à jour le compteur côté client
+        hasIncrementedRef.current = true;
       }
-    };
-
-    videoEl.addEventListener("play", handlePlay, { once: true });
-
-    return () => {
-      videoEl.removeEventListener("play", handlePlay);
-    };
-  }, [video, supabase]);
+    } catch (err) {
+      console.error("Erreur incrémentation vues:", err);
+    }
+  };
 
   // --- Formatage des vues arrondies ---
   const formatViews = (views?: number | null) => {
-  if (!views || views < 10) return ""; // ne rien afficher si moins de 10
+    if (!views || views < 10) return ""; // on ne montre rien si <10
 
-  if (views < 1000) {
-    const rounded = Math.floor(views / 10) * 10;
-    return `${rounded} vues`;
-  }
+    if (views < 1000) {
+      const rounded = Math.floor(views / 10) * 10;
+      return `${rounded} vues`;
+    }
 
-  if (views < 1_000_000) return `${(views / 1000).toFixed(1)} k vues`;
+    if (views < 1_000_000) return `${(views / 1000).toFixed(1)} k vues`;
 
-  return `${(views / 1_000_000).toFixed(1)} M vues`;
-};
-
-
-  const timeAgo = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-    const hours = Math.floor(diff / 3600);
-    const days = Math.floor(hours / 24);
-    const weeks = Math.floor(days / 7);
-    const years = Math.floor(weeks / 52);
-    if (hours < 24) return `il y a ${hours === 0 ? 1 : hours} ${hours > 1 ? "heures" : "heure"}`;
-    if (days < 7) return `il y a ${days} ${days > 1 ? "jours" : "jour"}`;
-    if (weeks < 52) return `il y a ${weeks} ${weeks > 1 ? "semaines" : "semaine"}`;
-    return `il y a ${years} ${years > 1 ? "ans" : "an"}`;
+    return `${(views / 1_000_000).toFixed(1)} M vues`;
   };
 
   if (loading) return <div className="flex justify-center items-center min-h-screen">Chargement...</div>;
@@ -122,13 +94,13 @@ export default function WatchPage() {
   return (
     <div className="min-h-screen dark:bg-black text-black dark:text-white px-4 py-8">
       <div className="max-w-5xl mx-auto">
-        {/* Player */}
+        {/* Video player */}
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
           <video
-            ref={videoRef}
             src={video.video_url}
             controls
             className="w-full h-full object-contain"
+            onPlay={incrementViews} // incrémente une seule fois au premier play
           />
         </div>
 
@@ -168,4 +140,19 @@ export default function WatchPage() {
       </div>
     </div>
   );
+}
+
+// --- Utilitaire pour "il y a x" ---
+function timeAgo(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const hours = Math.floor(diff / 3600);
+  const days = Math.floor(hours / 24);
+  const weeks = Math.floor(days / 7);
+  const years = Math.floor(weeks / 52);
+  if (hours < 24) return `il y a ${hours === 0 ? 1 : hours} ${hours > 1 ? "heures" : "heure"}`;
+  if (days < 7) return `il y a ${days} ${days > 1 ? "jours" : "jour"}`;
+  if (weeks < 52) return `il y a ${weeks} ${weeks > 1 ? "semaines" : "semaine"}`;
+  return `il y a ${years} ${years > 1 ? "ans" : "an"}`;
 }
