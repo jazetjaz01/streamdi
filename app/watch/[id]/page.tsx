@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -30,7 +30,6 @@ export default function WatchPage() {
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [views, setViews] = useState<number>(0);
-  const hasIncrementedRef = useRef(false); // pour n’incrémenter qu’une seule fois
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -58,25 +57,28 @@ export default function WatchPage() {
     fetchVideo();
   }, [videoId, supabase]);
 
-  // --- Fonction pour incrémenter les vues via API ---
+  // --- Incrémentation des vues une seule fois par session ---
   const incrementViews = async () => {
-    if (!videoId || hasIncrementedRef.current) return;
+    if (!videoId) return;
+
+    const key = `video_${videoId}_counted`;
+    if (sessionStorage.getItem(key)) return;
 
     try {
       const res = await fetch(`/api/videos/increment-view/${videoId}`, { method: "POST" });
       const result = await res.json();
       if (res.ok) {
-        setViews(result.views); // met à jour le compteur côté client
-        hasIncrementedRef.current = true;
+        setViews(result.views);
+        sessionStorage.setItem(key, "true");
       }
     } catch (err) {
       console.error("Erreur incrémentation vues:", err);
     }
   };
 
-  // --- Formatage des vues arrondies ---
+  // --- Formatage des vues ---
   const formatViews = (views?: number | null) => {
-    if (!views || views < 10) return ""; // on ne montre rien si <10
+    if (!views || views < 10) return "moins de 10 vues";
 
     if (views < 1000) {
       const rounded = Math.floor(views / 10) * 10;
@@ -94,13 +96,13 @@ export default function WatchPage() {
   return (
     <div className="min-h-screen dark:bg-black text-black dark:text-white px-4 py-8">
       <div className="max-w-5xl mx-auto">
-        {/* Video player */}
+        {/* Player */}
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
           <video
             src={video.video_url}
             controls
             className="w-full h-full object-contain"
-            onPlay={incrementViews} // incrémente une seule fois au premier play
+            onPlay={incrementViews}
           />
         </div>
 
@@ -142,7 +144,7 @@ export default function WatchPage() {
   );
 }
 
-// --- Utilitaire pour "il y a x" ---
+// --- Utilitaire "il y a x" ---
 function timeAgo(dateStr: string) {
   const date = new Date(dateStr);
   const now = new Date();
