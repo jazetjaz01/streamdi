@@ -213,17 +213,18 @@ export default function NewChannelPage() {
       if (!res.ok) throw new Error(result.error || "Erreur inconnue");
 
       // Incrémenter compteur de chaînes
-      await incrementChannelsCount();
+      const incrementChannelsCount = async () => {
+  if (!userId) return;
 
-      setSuccess("Chaîne créée avec succès !");
-      router.push(`/channel/${result.channel.handle}`);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { error } = await supabase.rpc("increment_channels_count", { uid: userId });
+
+  if (error) {
+    console.error("Erreur RPC increment_channels_count:", error.message);
+  } else {
+    console.log("Compteur de chaînes incrémenté avec succès");
+  }
+};
+
 
   if (activeChannel) {
     return (
