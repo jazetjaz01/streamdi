@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+
 interface Video {
   id: string;
   title: string;
@@ -25,9 +26,11 @@ export default function WatchPage() {
   const params = useParams();
   const videoId = params?.id;
   const supabase = createClient();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
+  const [views, setViews] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -47,6 +50,7 @@ export default function WatchPage() {
         console.error("Erreur chargement vidéo:", error);
       } else {
         setVideo(data);
+        setViews(data.views_count || 0);
       }
       setLoading(false);
     };
@@ -54,12 +58,49 @@ export default function WatchPage() {
     fetchVideo();
   }, [videoId, supabase]);
 
+  // --- Ajouter une vue lors du premier play ---
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !video) return;
+
+    const handlePlay = async () => {
+      try {
+        // Increment côté serveur
+        const { error } = await supabase
+          .from("videos")
+          .update({ views_count: (video.views_count || 0) + 1 })
+          .eq("id", video.id);
+
+        if (error) throw error;
+
+        // Update côté client (arrondi ensuite)
+        setViews((prev) => (prev ? prev + 1 : 1));
+      } catch (err: any) {
+        console.error("Erreur incrémentation vues:", err.message || err);
+      }
+    };
+
+    videoEl.addEventListener("play", handlePlay, { once: true });
+
+    return () => {
+      videoEl.removeEventListener("play", handlePlay);
+    };
+  }, [video, supabase]);
+
+  // --- Formatage des vues arrondies ---
   const formatViews = (views?: number | null) => {
-    if (!views || views < 10) return "";
-    if (views < 1000) return `${views} vues`;
-    if (views < 1_000_000) return `${(views / 1000).toFixed(1)} k vues`;
-    return `${(views / 1_000_000).toFixed(1)} M vues`;
-  };
+  if (!views || views < 10) return ""; // ne rien afficher si moins de 10
+
+  if (views < 1000) {
+    const rounded = Math.floor(views / 10) * 10;
+    return `${rounded} vues`;
+  }
+
+  if (views < 1_000_000) return `${(views / 1000).toFixed(1)} k vues`;
+
+  return `${(views / 1_000_000).toFixed(1)} M vues`;
+};
+
 
   const timeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -80,10 +121,11 @@ export default function WatchPage() {
 
   return (
     <div className="min-h-screen dark:bg-black text-black dark:text-white px-4 py-8">
-      {/* Video player */}
       <div className="max-w-5xl mx-auto">
+        {/* Player */}
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
           <video
+            ref={videoRef}
             src={video.video_url}
             controls
             className="w-full h-full object-contain"
@@ -93,7 +135,7 @@ export default function WatchPage() {
         {/* Titre et stats */}
         <h1 className="text-2xl font-bold mt-4">{video.title}</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm">
-          {formatViews(video.views_count)} • {timeAgo(video.created_at)}
+          {formatViews(views)} • {timeAgo(video.created_at)}
         </p>
 
         {/* Chaîne */}

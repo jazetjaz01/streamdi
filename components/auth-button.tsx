@@ -75,10 +75,10 @@ export function AuthButton() {
         }
       }
 
-      // Sinon, définit la première chaîne par défaut
-      if (!activeChannel && allChannels.length > 0) {
-        setActiveChannel(allChannels[0]);
-        localStorage.setItem("activeChannel", JSON.stringify(allChannels[0]));
+      // Par défaut, le contexte actif est le profil (aucune chaîne)
+      if (!activeChannel) {
+        setActiveChannel(null);
+        localStorage.removeItem("activeChannel");
       }
 
       setLoading(false);
@@ -90,7 +90,6 @@ export function AuthButton() {
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_OUT") {
-          // Nettoyage complet
           setUser(null);
           setProfile(null);
           setChannels([]);
@@ -119,10 +118,14 @@ export function AuthButton() {
     setChannels(refreshedChannels ?? []);
   };
 
-  // === Gère la sélection d'une nouvelle chaîne ===
-  const handleChangeChannel = (ch: Channel) => {
+  // === Gère la sélection d'une nouvelle chaîne OU retour au profil ===
+  const handleChangeChannel = (ch: Channel | null) => {
     setActiveChannel(ch);
-    localStorage.setItem("activeChannel", JSON.stringify(ch));
+    if (ch) {
+      localStorage.setItem("activeChannel", JSON.stringify(ch));
+    } else {
+      localStorage.removeItem("activeChannel");
+    }
   };
 
   if (loading) return null;
@@ -174,37 +177,42 @@ export function AuthButton() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-64">
-        {/* === Mon compte === */}
+        {/* === Mon compte (profil actif) === */}
         <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link href="/account/profile" className="flex items-center gap-2">
-            <Image
-              src={profile?.avatar_url || "/default-avatar.png"}
-              alt="Profil"
-              width={24}
-              height={24}
-              className="rounded-full"
-            />
-            <span>{profile?.username || "Mon profil"}</span>
-          </Link>
+        <DropdownMenuItem
+          className={`flex items-center gap-2 ${!activeChannel ? "bg-muted" : ""}`}
+          onClick={() => handleChangeChannel(null)}
+        >
+          <Image
+            src={profile?.avatar_url || "/default-avatar.png"}
+            alt="Profil"
+            width={24}
+            height={24}
+            className="rounded-full"
+          />
+          <span>{profile?.username || "Mon profil"}</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
         {/* === Chaîne active === */}
-        <DropdownMenuLabel>Chaîne active</DropdownMenuLabel>
-        <DropdownMenuItem className="flex items-center gap-2 cursor-default">
-          <Image
-            src={activeChannel?.avatar_url || "/default-avatar.png"}
-            alt={displayName}
-            width={24}
-            height={24}
-            className="rounded-full"
-          />
-          <span>{activeChannel?.name || "Aucune chaîne"}</span>
-        </DropdownMenuItem>
+        {activeChannel && (
+          <>
+            <DropdownMenuLabel>Chaîne active</DropdownMenuLabel>
+            <DropdownMenuItem className="flex items-center gap-2 cursor-default">
+              <Image
+                src={activeChannel.avatar_url || "/default-avatar.png"}
+                alt={displayName}
+                width={24}
+                height={24}
+                className="rounded-full"
+              />
+              <span>{activeChannel.name}</span>
+            </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
+            <DropdownMenuSeparator />
+          </>
+        )}
 
         {/* === Autres chaînes === */}
         {otherChannels.length > 0 && (
@@ -213,7 +221,9 @@ export function AuthButton() {
             {otherChannels.map((ch) => (
               <DropdownMenuItem
                 key={ch.id}
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${
+                  activeChannel?.id === ch.id ? "bg-muted" : ""
+                }`}
                 onClick={() => handleChangeChannel(ch)}
               >
                 <Image
@@ -231,9 +241,7 @@ export function AuthButton() {
         )}
 
         {/* === Actions === */}
-        <DropdownMenuItem onClick={handleRefresh}>
-          🔄 Rafraîchir les chaînes
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleRefresh}>🔄 Rafraîchir les chaînes</DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <Link href="/account/channels" className="flex items-center gap-2">

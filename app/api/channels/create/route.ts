@@ -6,19 +6,22 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const body = await req.json();
 
-    const { name, handle, description, visibility, avatar_url } = body;
+    const { name, handle, description, visibility, avatar_url, banner_url } = body;
 
-    // Récupérer l'utilisateur connecté
+    // 🔐 Vérification de l'utilisateur connecté
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Utilisateur non authentifié" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Utilisateur non authentifié" },
+        { status: 401 }
+      );
     }
 
-    // Récupérer le profil lié à cet utilisateur
+    // 👤 Récupération du profil lié à l'utilisateur
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id")
@@ -26,10 +29,13 @@ export async function POST(req: Request) {
       .single();
 
     if (profileError || !profile) {
-      return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Profil introuvable" },
+        { status: 404 }
+      );
     }
 
-    // Créer la nouvelle chaîne
+    // 🆕 Création de la chaîne avec avatar + bannière
     const { data: newChannel, error: insertError } = await supabase
       .from("channels")
       .insert([
@@ -39,18 +45,23 @@ export async function POST(req: Request) {
           handle,
           description,
           visibility,
-          avatar_url, // <-- ici on enregistre bien l'avatar
+          avatar_url, // ✅ avatar enregistré
+          banner_url, // ✅ nouvelle bannière enregistrée
         },
       ])
       .select()
       .single();
 
     if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: insertError.message },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ channel: newChannel }, { status: 201 });
   } catch (err: any) {
+    console.error("Erreur lors de la création de la chaîne :", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

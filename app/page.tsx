@@ -22,12 +22,20 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   // 🔹 Format des vues
-  const formatViews = (views?: number | null) => {
-    if (!views || views < 10) return "";
-    if (views < 1000) return `${views} vues`;
-    if (views < 1_000_000) return `${(views / 1000).toFixed(1)} k vues`;
-    return `${(views / 1_000_000).toFixed(1)} M vues`;
-  };
+ const formatViews = (views?: number | null) => {
+  if (!views || views < 10) return ""; // ne rien afficher si moins de 10
+
+  if (views < 1000) {
+    const rounded = Math.floor(views / 10) * 10;
+    return `${rounded} vues`;
+  }
+
+  if (views < 1_000_000) return `${(views / 1000).toFixed(1)} k vues`;
+
+  return `${(views / 1_000_000).toFixed(1)} M vues`;
+};
+
+
 
   // 🔹 Temps écoulé
   const timeAgo = (dateStr: string) => {
