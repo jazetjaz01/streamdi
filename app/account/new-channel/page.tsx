@@ -28,7 +28,6 @@ export default function NewChannelPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [bannedWords, setBannedWords] = useState<string[]>([]);
-
   const [userId, setUserId] = useState<string | null>(null);
 
   // --- Charger mots interdits ---
@@ -147,21 +146,22 @@ export default function NewChannelPage() {
     return (data.channels_count || 0) < 5;
   };
 
+  // ✅ Fonction RPC pour incrémenter le compteur
   const incrementChannelsCount = async () => {
     if (!userId) return;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ channels_count: supabase.raw("channels_count + 1") })
-      .eq("user_id", userId);
-    if (error) console.error("Erreur incrément compteur de chaînes:", error.message);
+    const { error } = await supabase.rpc("increment_channels_count", { uid: userId });
+    if (error) console.error("Erreur RPC increment_channels_count:", error.message);
   };
 
+  // --- Soumission du formulaire ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (activeChannel) {
       setError("Une chaîne ne peut pas en créer une autre.");
       return;
     }
+
     const allowed = await canCreateChannel();
     if (!allowed) {
       setError("Vous avez atteint le nombre maximum de 5 chaînes par profil.");
@@ -212,20 +212,19 @@ export default function NewChannelPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Erreur inconnue");
 
-      // Incrémenter compteur de chaînes
-      const incrementChannelsCount = async () => {
-  if (!userId) return;
+      await incrementChannelsCount();
 
-  const { error } = await supabase.rpc("increment_channels_count", { uid: userId });
+      setSuccess("Chaîne créée avec succès !");
+      router.push(`/channel/${result.channel.handle}`);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (error) {
-    console.error("Erreur RPC increment_channels_count:", error.message);
-  } else {
-    console.log("Compteur de chaînes incrémenté avec succès");
-  }
-};
-
-
+  // --- Si une chaîne est active ---
   if (activeChannel) {
     return (
       <div className="max-w-xl mx-auto py-20 text-center">
@@ -235,14 +234,17 @@ export default function NewChannelPage() {
           <span className="font-semibold">{activeChannel.name}</span>.  
           Seul le contexte <strong>"Mon compte"</strong> peut créer une nouvelle chaîne.
         </p>
-        <button onClick={() => router.push(`/channel/${activeChannel.handle}`)}
-          className="mt-6 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+        <button
+          onClick={() => router.push(`/channel/${activeChannel.handle}`)}
+          className="mt-6 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+        >
           Retourner à ma chaîne
         </button>
       </div>
     );
   }
 
+  // --- Formulaire principal ---
   return (
     <div className="max-w-xl mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Créer une nouvelle chaîne</h1>
@@ -250,17 +252,32 @@ export default function NewChannelPage() {
         {/* Nom */}
         <div>
           <label className="block text-sm font-medium mb-1">Nom</label>
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required
-            className="w-full border rounded-lg p-2 bg-background" />
-          <p className="text-xs text-gray-500 mt-1">{formData.name.split(/\s+/).filter(Boolean).length} / 20 mots</p>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            className="w-full border rounded-lg p-2 bg-background"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            {formData.name.split(/\s+/).filter(Boolean).length} / 20 mots
+          </p>
         </div>
 
         {/* Description */}
         <div>
           <label className="block text-sm font-medium mb-1">Description</label>
-          <textarea name="description" value={formData.description} onChange={handleChange} rows={3}
-            className="w-full border rounded-lg p-2 bg-background" />
-          <p className="text-xs text-gray-500 mt-1">{formData.description.split(/\s+/).filter(Boolean).length} / 100 mots</p>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows={3}
+            className="w-full border rounded-lg p-2 bg-background"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            {formData.description.split(/\s+/).filter(Boolean).length} / 100 mots
+          </p>
         </div>
 
         {/* Avatar */}
