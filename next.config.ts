@@ -17,7 +17,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "hqbwruoqgtvxxxqiihog.supabase.co", // ✅ ton bucket Supabase (remplace ton domaine)
+        hostname: "hqbwruoqgtvxxxqiihog.supabase.co", // ✅ ton bucket Supabase
+      },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com", // ✅ ajoute ce domaine pour corriger ton erreur
       },
     ],
   },

@@ -247,7 +247,8 @@ export default function NewChannelPage() {
   // --- Formulaire principal ---
   return (
     <div className="max-w-xl mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Créer une nouvelle chaîne</h1>
+      <h1 className="text-2xl font-bold ">Créer une nouvelle chaîne</h1>
+      <h3 className="text-base  text-gray-500 mb-6">Le nombre de chaine est limité à cinq par compte</h3>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Nom */}
         <div>
