@@ -5,8 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
-// --- Type vidéo et chaîne ---
+ import { ThumbsUp } from "lucide-react";
 interface Video {
   id: string;
   title: string;
@@ -15,6 +14,7 @@ interface Video {
   views_count: number;
   created_at: string;
   channel_id: string;
+  likes_count: number;
   channel: {
     id: string;
     name: string;
@@ -32,11 +32,18 @@ export default function WatchPage() {
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [views, setViews] = useState<number>(0);
+
+  // Abonnement
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loadingSub, setLoadingSub] = useState(false);
   const [subscribersCount, setSubscribersCount] = useState<number>(0);
 
-  // --- Charger la vidéo et le nombre d'abonnés ---
+  // Like
+  const [isLiked, setIsLiked] = useState<boolean | null>(null); // null = pas encore chargé
+  const [likesCount, setLikesCount] = useState(0);
+  const [loadingLike, setLoadingLike] = useState(false);
+
+  // --- Charger la vidéo ---
   useEffect(() => {
     const fetchVideo = async () => {
       if (!videoId) return;
@@ -56,6 +63,7 @@ export default function WatchPage() {
         setVideo(data);
         setViews(data.views_count || 0);
         setSubscribersCount(data.channel?.subscribers_count || 0);
+        setLikesCount(data.likes_count || 0);
       }
 
       setLoading(false);
@@ -64,29 +72,44 @@ export default function WatchPage() {
     fetchVideo();
   }, [videoId, supabase]);
 
-  // --- Vérifier l'abonnement de l'utilisateur ---
+  // --- Vérifier l'abonnement ---
   useEffect(() => {
     const checkSubscription = async () => {
       if (!video?.channel?.id) return;
-
       try {
-        const res = await fetch(`/api/subscriptions/status/${video.channel.id}`);
+        const res = await fetch(`/api/subscriptions/status/${video.channel.id}`, {
+          credentials: "include",
+        });
         const status = await res.json();
-
         if (res.ok) setIsSubscribed(!!status.isSubscribed);
-        else console.error("Erreur récupération statut abonnement", res.status, status);
       } catch (err) {
         console.error("Erreur récupération statut abonnement", err);
       }
     };
-
     if (video?.channel?.id) checkSubscription();
   }, [video?.channel?.id]);
 
-  // --- Toggle abonnement/désabonnement ---
+  // --- Vérifier le statut like dès le montage ---
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      if (!video?.id) return;
+      try {
+        const res = await fetch(`/api/likes/status/${video.id}`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        setIsLiked(data.isLiked ?? false);
+      } catch (err) {
+        console.error("Erreur récupération statut like", err);
+        setIsLiked(false);
+      }
+    };
+    if (video?.id) fetchLikeStatus();
+  }, [video?.id]);
+
+  // --- Toggle abonnement ---
   const toggleSubscribe = async () => {
     if (!video?.channel?.id) return;
-
     setLoadingSub(true);
     try {
       const url = isSubscribed
@@ -100,12 +123,8 @@ export default function WatchPage() {
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        console.error("Erreur toggle abonnement :", res.status, data);
-        return;
-      }
+      if (!res.ok) return console.error("Erreur toggle abonnement :", res.status, data);
 
-      // Mise à jour immédiate du bouton et compteur d'abonnés
       setIsSubscribed(!isSubscribed);
       setSubscribersCount(prev => isSubscribed ? prev - 1 : prev + 1);
     } catch (err) {
@@ -115,10 +134,40 @@ export default function WatchPage() {
     }
   };
 
-  // --- Incrémenter les vues une seule fois par session ---
+  // --- Toggle like / unlike ---
+  const toggleLike = async () => {
+    if (!video?.id || loadingLike) return;
+    setLoadingLike(true);
+
+    const newLikedState = !isLiked;
+    setIsLiked(newLikedState); // Optimistic UI
+    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
+
+    try {
+      const url = newLikedState ? "/api/likes/like" : "/api/likes/unlike";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoId: video.id }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setIsLiked(!newLikedState);
+        setLikesCount(prev => newLikedState ? prev - 1 : prev + 1);
+      }
+    } catch (err) {
+      console.error("Erreur toggle like:", err);
+      setIsLiked(!newLikedState);
+      setLikesCount(prev => newLikedState ? prev - 1 : prev + 1);
+    } finally {
+      setLoadingLike(false);
+    }
+  };
+
+  // --- Incrémenter les vues ---
   const incrementViews = async () => {
     if (!videoId) return;
-
     const key = `video_${videoId}_counted`;
     if (sessionStorage.getItem(key)) return;
 
@@ -134,7 +183,6 @@ export default function WatchPage() {
     }
   };
 
-  // --- Formatage des vues ---
   const formatViews = (views?: number | null) => {
     if (!views || views < 10) return "moins de 10 vues";
     if (views < 1000) return `${Math.floor(views / 10) * 10} vues`;
@@ -148,7 +196,6 @@ export default function WatchPage() {
   return (
     <div className="min-h-screen dark:bg-black text-black dark:text-white px-4 py-8">
       <div className="max-w-5xl mx-auto">
-        {/* Player vidéo */}
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
           <video
             src={video.video_url}
@@ -158,15 +205,14 @@ export default function WatchPage() {
           />
         </div>
 
-        {/* Titre et stats */}
         <h1 className="text-2xl font-bold mt-4">{video.title}</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm">
           {formatViews(views)} • {timeAgo(video.created_at)}
         </p>
 
-        {/* Bloc chaîne + bouton abonnement + nombre d'abonnés */}
         {video.channel && (
-          <div className="flex items-center justify-between mt-6">
+          <div className="flex items-center justify-between mt-6 ">
+            <div className="flex gap-10">
             <Link href={`/channel/${video.channel.handle}`} className="flex items-center gap-3">
               <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-700">
                 {video.channel.avatar_url ? (
@@ -179,32 +225,49 @@ export default function WatchPage() {
               </div>
               <div>
                 <p className="font-semibold">{video.channel.name}</p>
-                {/*  <p className="text-sm text-gray-500 dark:text-gray-400">@{video.channel.handle}</p>*/}
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                {subscribersCount} abonnés
-              </span>
+                 <span className="text-sm text-gray-500 dark:text-gray-400">{subscribersCount} abonnés</span>
               </div>
             </Link>
 
-            {/* Abonnement + compteur */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleSubscribe}
-                disabled={loadingSub}
-                className={`px-4 py-2 rounded-xl font-semibold transition-colors ${
-                  isSubscribed
-                    ? "bg-gray-300 dark:bg-gray-700 text-black dark:text-white"
-                    : "bg-red-600 hover:bg-red-700 text-white"
-                }`}
-              >
-                {loadingSub ? "..." : isSubscribed ? "Abonné" : "S’abonner"}
-              </button>
-              
+                   <button
+  onClick={toggleSubscribe}
+  disabled={loadingSub}
+  className={`px-2 py-3 rounded-md text-sm font-semibold transition-colors ${
+    isSubscribed
+      ? "bg-gray-300 dark:bg-gray-700 text-black dark:text-white"
+      : "bg-red-600 hover:bg-red-700 text-white"
+  }`}
+>
+  {loadingSub ? "..." : isSubscribed ? "Abonné" : "S’abonner"}
+</button>
+
+            
+
+                </div>
+
+
+
+{/* Like / Unlike */}
+{isLiked !== null && (
+  <div className="flex items-center gap-2 cursor-pointer" onClick={toggleLike}>
+    <ThumbsUp
+      size={24}
+      color={isLiked ? "#0ea5e9" : "#888888"} // bleu si liké, gris sinon
+      strokeWidth={2}
+      fill="none" // toujours vide
+    />
+    <span className="text-sm">{likesCount}</span>
+  </div>
+)}
+
+
             </div>
-          </div>
+           
         )}
 
-        {/* Description */}
+
+
+
         {video.description && (
           <div className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-line">
             {video.description}
@@ -215,7 +278,6 @@ export default function WatchPage() {
   );
 }
 
-// --- Fonction utilitaire "il y a x" ---
 function timeAgo(dateStr: string) {
   const date = new Date(dateStr);
   const now = new Date();
