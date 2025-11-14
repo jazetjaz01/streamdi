@@ -207,14 +207,14 @@ export default function WatchPage() {
           />
         </div>
 
-        <h1 className="text-2xl font-bold mt-4">{video.title}</h1>
+        <h1 className=" font-bold mt-4 text-sm sm:text-xl">{video.title}</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm">
           {formatViews(views)} • {timeAgo(video.created_at)}
         </p>
 
         {video.channel && (
-          <div className="flex items-center justify-between mt-6 ">
-            <div className="flex gap-10">
+          <div className="flex items-center justify-between mt-6 border ">
+            <div className="flex gap-5">
             <Link href={`/channel/${video.channel.handle}`} className="flex items-center gap-3">
               <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-700">
                 {video.channel.avatar_url ? (
@@ -226,7 +226,10 @@ export default function WatchPage() {
                 )}
               </div>
               <div>
-                <p className="font-semibold">{video.channel.name}</p>
+                <p className="font-semibold text-sm sm:text-base">
+  {video.channel.name}
+</p>
+
                  <span className="text-sm text-gray-500 dark:text-gray-400">{subscribersCount} abonnés</span>
               </div>
             </Link>
