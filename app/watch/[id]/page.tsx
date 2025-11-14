@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
  import { ThumbsUp } from "lucide-react";
+ import { Button } from "@/components/ui/button";
+
 interface Video {
   id: string;
   title: string;
@@ -229,17 +231,20 @@ export default function WatchPage() {
               </div>
             </Link>
 
-                   <button
+                  
+<Button
+  size="sm" // petite taille
   onClick={toggleSubscribe}
   disabled={loadingSub}
-  className={`px-2 py-3 rounded-md text-sm font-semibold transition-colors ${
+  className={`${
     isSubscribed
-      ? "bg-gray-300 dark:bg-gray-700 text-black dark:text-white"
-      : "bg-red-600 hover:bg-red-700 text-white"
+      ? "bg-gray-300 dark:bg-gray-700 text-black dark:text-white hover:bg-gray-400 dark:hover:bg-gray-600"
+      : "bg-red-600 text-white hover:bg-red-700"
   }`}
 >
   {loadingSub ? "..." : isSubscribed ? "Abonné" : "S’abonner"}
-</button>
+</Button>
+
 
             
 
