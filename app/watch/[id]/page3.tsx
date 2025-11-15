@@ -8,8 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import { ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import ReportVideo from "@/components/report/ReportVideo";
-
 interface Video {
   id: string;
   title: string;
@@ -258,11 +256,8 @@ export default function WatchPage() {
                 <span className="text-sm">{likesCount}</span>
               </div>
             )}
-            <ReportVideo videoId={video.id} />
           </div>
-          
         )}
-
 
         {video.description && (
           <div className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-line">

@@ -59,18 +59,20 @@ export default function Home() {
     const fetchVideos = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("videos")
-          .select(`
-            id, title, thumbnail_url, video_url, views_count, created_at,
-            channels:channel_id (
-              id,
-              name,
-              avatar_url,
-              handle
-            )
-          `)
-          .order("created_at", { ascending: false });
+       const { data, error } = await supabase
+  .from("videos")
+  .select(`
+    id, title, thumbnail_url, video_url, views_count, created_at, visibility,
+    channels:channel_id (
+      id,
+      name,
+      avatar_url,
+      handle
+    )
+  `)
+  .eq("visibility", "public")   // <-- 🔥 Ajout du filtre
+  .order("created_at", { ascending: false });
+
 
         if (error) throw error;
 

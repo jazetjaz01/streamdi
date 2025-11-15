@@ -27,7 +27,7 @@ export function NavIntro() {
   // 🔗 Liens fixes de navigation
   const links: { name: string; url: string; icon: LucideIcon }[] = [
     { name: "Accueil", url: "/", icon: Home },
-    { name: "Shorts", url: "/shorts", icon: PlaySquare },
+    { name: "Reports", url: "/admin/reports", icon: PlaySquare },
     { name: "Abonnements", url: "/account/new-channel", icon: Play },
     { name: "Mon profil", url: "/account/profile", icon: CircleUser },
   ];
